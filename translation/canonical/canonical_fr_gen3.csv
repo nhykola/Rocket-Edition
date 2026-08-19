@@ -1,0 +1,9 @@
+category,internal_id,english_key,english_display,french_canonical,rom_display_fr,source,verification_status,notes
+move,MOVE_THUNDER,THUNDER,Thunder,Fatal-Foudre,,user_requirement_2026-08-19,verified,Nom Gen III exigé explicitement dans le cahier des charges
+move,MOVE_THUNDERBOLT,THUNDERBOLT,Thunderbolt,Tonnerre,,user_requirement_2026-08-19,verified,Nom Gen III exigé explicitement dans le cahier des charges
+move,MOVE_THUNDER_SHOCK,THUNDER_SHOCK,ThunderShock,Éclair,,user_requirement_2026-08-19,verified,Nom Gen III exigé explicitement dans le cahier des charges
+move,MOVE_THUNDER_WAVE,THUNDER_WAVE,Thunder Wave,Cage-Éclair,,user_requirement_2026-08-19,verified,Nom Gen III exigé explicitement dans le cahier des charges
+species,SPECIES_BULBASAUR,BULBASAUR,Bulbasaur,Bulbizarre,,user_requirement_2026-08-19,verified,Nom Gen III exigé explicitement dans le cahier des charges
+species,SPECIES_CHARMANDER,CHARMANDER,Charmander,Salamèche,,user_requirement_2026-08-19,verified,Nom Gen III exigé explicitement dans le cahier des charges
+species,SPECIES_CHARIZARD,CHARIZARD,Charizard,Dracaufeu,,user_requirement_2026-08-19,verified,Nom Gen III exigé explicitement dans le cahier des charges
+species,SPECIES_SQUIRTLE,SQUIRTLE,Squirtle,Carapuce,,user_requirement_2026-08-19,verified,Nom Gen III exigé explicitement dans le cahier des charges
