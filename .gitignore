@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+
+# Commercial/test ROMs and generated patches must remain local.
+*.gba
+*.agb
+*.bps
+*.ips
+*.ups
+build/
+dist/
