@@ -10,6 +10,7 @@ from pathlib import Path
 TEXT_RE = re.compile(r"^(?P<indent>\s*)= (?P<text>.*)$")
 ORG_RE = re.compile(r"^\s*#org\s+(\S+)", re.IGNORECASE)
 LAYOUT_NAMES = {"\\n", "\\l", "\\p"}
+VISIBLE_PLACEHOLDERS = {"[player]", "[buffer1]", "[buffer2]", "[buffer3]"}
 BRACKET_TECHNICAL = re.compile(
     r"\[(?:player|buffer[123]|\$|ME|blue_fr|black_fr|\.|Ke)\]", re.IGNORECASE
 )
@@ -114,4 +115,29 @@ def display_lines(text: str) -> list[tuple[int, int, str]]:
             row = 1
         if row > 1: raise ValueError("plus de deux lignes sans défilement/page")
     lines.append((page, row, "".join(current)))
+    return lines
+
+
+def display_line_parts(text: str) -> list[tuple[int, int, list[str | Control]]]:
+    """Split display lines while retaining visible substitution placeholders."""
+    page = row = cursor = 0
+    current: list[str | Control] = []
+    lines: list[tuple[int, int, list[str | Control]]] = []
+    for token in controls(text):
+        if token.start > cursor:
+            current.append(text[cursor:token.start])
+        cursor = token.end
+        if token.kind == "immutable":
+            if token.value.lower() in VISIBLE_PLACEHOLDERS:
+                current.append(token)
+            continue
+        lines.append((page, row, current)); current = []
+        if token.value == "\\p": page += 1; row = 0
+        elif token.value == "\\n": row += 1
+        else:
+            if row < 1: raise ValueError("\\l avant la deuxième ligne")
+            row = 1
+        if row > 1: raise ValueError("plus de deux lignes sans défilement/page")
+    if cursor < len(text): current.append(text[cursor:])
+    lines.append((page, row, current))
     return lines

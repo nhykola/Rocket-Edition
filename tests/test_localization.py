@@ -3,8 +3,8 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT/"tools"))
 from localization_common import controls, display_lines, immutable_tokens, visible_text
-from validate_dialogues import validate
-from validate_terminology import load_canonical, validate_assignments
+from validate_dialogues import measured_lines, validate
+from validate_terminology import load_canonical, validate_assignments, validate_prose
 from generate_patch import number
 
 class ControlsTest(unittest.TestCase):
@@ -37,7 +37,7 @@ class CatalogueTest(unittest.TestCase):
             path=Path(d)/"bad.csv"
             with path.open("w",encoding="utf-8",newline="") as h:
                 writer=csv.DictWriter(h,fields);writer.writeheader();writer.writerows(rows)
-            _,_,issues=validate(path,ROOT)
+            *_,issues=validate(path,ROOT)
         messages=" ".join(x[2] for x in issues)
         self.assertIn("absent du catalogue",messages); self.assertIn("étranger au catalogue",messages); self.assertIn("présent 2 fois",messages)
 
@@ -50,6 +50,45 @@ class CanonicalTest(unittest.TestCase):
     def test_invented_thunder_is_rejected(self):
         issues=validate_assignments([{"internal_id":"MOVE_THUNDER","french":"Éclair Assassin"}],self.data)
         self.assertEqual(issues[0][0],"ERROR")
+    def test_english_species_and_unambiguous_move_are_errors(self):
+        species=validate_prose("Charizard",self.data)
+        move=validate_prose("Thunder Wave",self.data)
+        self.assertEqual(species[0][0],"ERROR")
+        self.assertEqual(move[0][0],"ERROR")
+
+class PlaceholderWidthTest(unittest.TestCase):
+    def test_player_placeholder_reserves_seven_widest_glyphs(self):
+        literal="W"*24  # 192px before the substituted player name
+        _,_,pixels,_=measured_lines(literal+"[player]")[0]
+        self.assertEqual(pixels,248)
+        self.assertGreater(pixels,198)
+    def test_unknown_buffer_is_never_zero_width(self):
+        _,_,pixels,unknown=measured_lines("W"*12+"[buffer1]")[0]
+        self.assertEqual(pixels,192)
+        self.assertEqual(unknown,["[buffer1]"])
+
+class StatusTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with (ROOT/"translation/dialogues_fr.csv").open(encoding="utf-8",newline="") as h:
+            cls.rows=list(csv.DictReader(h)); cls.fields=cls.rows[0].keys()
+        cls.index=next(i for i,row in enumerate(cls.rows) if not immutable_tokens(row["source"]))
+    def run_changed(self,fr,status):
+        rows=[dict(row) for row in self.rows]; rows[self.index]["fr"]=fr; rows[self.index]["status"]=status
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/"catalogue.csv"
+            with path.open("w",encoding="utf-8",newline="") as h:
+                writer=csv.DictWriter(h,self.fields); writer.writeheader(); writer.writerows(rows)
+            *_,issues=validate(path,ROOT)
+        return [issue for issue in issues if issue[1]==rows[self.index]["id"]]
+    def test_empty_validated_is_error(self): self.assertTrue(any(x[0]=="ERREUR" for x in self.run_changed("","validé")))
+    def test_empty_translated_is_error(self): self.assertTrue(any(x[0]=="ERREUR" for x in self.run_changed("","traduit")))
+    def test_valid_translation_and_status_are_ok(self): self.assertEqual(self.run_changed("Bonjour.","traduit"),[])
+    def test_unknown_status_is_error(self): self.assertTrue(any(x[0]=="ERREUR" for x in self.run_changed("Bonjour.","terminé")))
+    def test_dialogue_qa_rejects_charizard(self):
+        self.assertTrue(any("SPECIES_CHARIZARD" in x[2] and x[0]=="ERREUR" for x in self.run_changed("Charizard","traduit")))
+    def test_dialogue_qa_rejects_thunder_wave(self):
+        self.assertTrue(any("MOVE_THUNDER_WAVE" in x[2] and x[0]=="ERREUR" for x in self.run_changed("Thunder Wave","traduit")))
 
 class PatchTest(unittest.TestCase):
     def test_bps_variable_length_integer_has_final_bit(self):

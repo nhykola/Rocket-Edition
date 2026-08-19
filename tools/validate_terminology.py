@@ -30,21 +30,35 @@ def validate_assignments(rows, canonical):
 
 def validate_prose(text: str, canonical):
     """Flag English terms; ambiguous one-word move names require human context."""
-    issues=[]
-    for term in canonical.values():
+    issues=[]; occupied=[]
+    # Longest first prevents `Thunder` from shadowing the unambiguous
+    # `Thunder Wave` at the same location.
+    for term in sorted(canonical.values(),key=lambda row:len(row["english_display"]),reverse=True):
         english=term["english_display"]
-        if re.search(r"(?<![\w-])"+re.escape(english)+r"(?![\w-])",text,re.I):
+        matches=list(re.finditer(r"(?<![\w-])"+re.escape(english)+r"(?![\w-])",text,re.I))
+        fresh=[match for match in matches if not any(match.start()<end and match.end()>start for start,end in occupied)]
+        if fresh:
             severity="ERROR" if term["category"]=="species" or " " in english else "REVIEW_REQUIRED"
             issues.append((severity,term["internal_id"],f"terme anglais détecté; canonique: {term['french_canonical']}"))
+            occupied.extend((match.start(),match.end()) for match in fresh)
     return issues
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--canonical",type=Path,default=Path("translation/canonical/canonical_fr_gen3.csv")); ap.add_argument("--assignments",type=Path); ap.add_argument("--text"); a=ap.parse_args()
+    root=Path(__file__).resolve().parents[1]
+    ap=argparse.ArgumentParser(); ap.add_argument("--canonical",type=Path,default=root/"translation/canonical/canonical_fr_gen3.csv"); ap.add_argument("--catalogue",type=Path,default=root/"translation/dialogues_fr.csv",help="catalogue contrôlé par défaut"); ap.add_argument("--assignments",type=Path); ap.add_argument("--text"); a=ap.parse_args()
     canonical=load_canonical(a.canonical); issues=[]
     if a.assignments:
         with a.assignments.open(encoding="utf-8",newline="") as h: issues+=validate_assignments(list(csv.DictReader(h)),canonical)
     if a.text is not None: issues+=validate_prose(a.text,canonical)
+    scanned=0
+    if a.catalogue:
+        with a.catalogue.open(encoding="utf-8",newline="") as h:
+            for row in csv.DictReader(h):
+                fr=row.get("fr","").strip()
+                if fr:
+                    scanned+=1
+                    issues += validate_prose(fr,canonical)
     for level,ident,message in issues: print(f"{level} {ident}: {message}")
-    print(f"{len(canonical)} termes canoniques chargés; {len(issues)} problème(s)")
+    print(f"{len(canonical)} termes canoniques chargés; {scanned} traduction(s) contrôlée(s); {len(issues)} problème(s)")
     return 1 if issues else 0
 if __name__=="__main__": raise SystemExit(main())
