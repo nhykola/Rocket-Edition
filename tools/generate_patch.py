@@ -8,8 +8,8 @@ def number(value: int) -> bytes:
     out=bytearray()
     while True:
         byte=value & 0x7f; value >>= 7
-        if value: out.append(byte | 0x80); value -= 1
-        else: out.append(byte); return bytes(out)
+        if value == 0: out.append(byte | 0x80); return bytes(out)
+        out.append(byte); value -= 1
 
 def create_bps(source: bytes, target: bytes) -> bytes:
     patch=bytearray(b"BPS1")+number(len(source))+number(len(target))+number(0)

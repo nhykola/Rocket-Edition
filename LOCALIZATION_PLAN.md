@@ -26,7 +26,7 @@ Les crédits doivent conserver tous les noms/contributions. Les noms personnalis
 - **Contrôle :** `\\n`, `\\l`, `\\p`, `[.]`, couleurs `[blue_fr]`/`[black_fr]`, séquences `\\c`, `\\h`, `\\w` paramétrées. Les rares `\\I`, `\\a`, `\\y`, `\\F`, `\\G` et `\\\\` restent opaques jusqu'à validation de la table XSE.
 - **Jamais traduisible :** tout le reste du script (`#dynamic`, `#include`, `#org`, labels `@...`, commandes, nombres/adresses, constantes, flags/variables, commentaires de maintenance).
 
-Fréquences observées utiles à la non-régression : `\\n` 6 466, `\\p` 4 828, `[.]` 2 839, `\\l` 2 076, `\\h` 1 276, `\\c` 1 249, `[player]` 446, `[$]` 116, `[buffer1]` 99, `[blue_fr]` 70, `[buffer2]` 36, `[buffer3]` 8, `[black_fr]` 6 et `[ME]` 1. Le validateur compare les multisets de contrôles source/cible et interdit donc leur perte ou altération.
+Fréquences observées utiles à l'audit initial : `\\n` 6 466, `\\p` 4 828, `[.]` 2 839, `\\l` 2 076, `\\h` 1 276, `\\c` 1 249, `[player]` 446, `[$]` 116, `[buffer1]` 99, `[blue_fr]` 70, `[buffer2]` 36, `[buffer3]` 8, `[black_fr]` 6 et `[ME]` 1. Le validateur compare **la séquence ordonnée des contrôles techniques immuables**, paramètres inclus. Il exclut volontairement `\\n`, `\\l` et `\\p` de cette égalité afin que la mise en page française puisse être recomposée, puis valide séparément l'automate des pages/lignes et leur largeur.
 
 ### Encodage et police
 
@@ -55,11 +55,13 @@ Prendre comme **entrée locale** une release anglaise propre et identifiée par 
 ## 3. Arborescence et utilisation
 
 - `translation/dialogues_fr.csv` : catalogue source/cible, label, fichier, encodage et état.
-- `translation/glossary_fr.csv` : terminologie certaine et éléments à vérifier.
+- `translation/canonical/canonical_fr_gen3.csv` : terminologie Pokémon canonique indexée par identifiant ; socle actuel de 4 espèces et 4 capacités explicitement fournies, autres catégories encore incomplètes.
+- `translation/canonical/SOURCES.md` : provenance, couverture et protocole d'import vérifiable.
+- `translation/glossary_fr.csv` : décisions éditoriales propres à Rocket Edition uniquement.
 - `translation/characters_fr.md` : tutoiement, voix et registre.
 - `translation/style_guide_fr.md` : règles éditoriales et techniques.
 - `translation/progress.json`, `untranslated_report.txt`, `qa_report.md` : sorties reproductibles.
-- `tools/localization_common.py`, `extract_dialogues.py`, `validate_dialogues.py` : audit ROM-free.
+- `tools/localization_common.py`, `extract_dialogues.py`, `validate_dialogues.py`, `validate_terminology.py` : audit ROM-free.
 - `tools/build_fr.py` : interface cible et garde-fou.
 - `tools/generate_patch.py` : génération BPS locale.
 
@@ -68,13 +70,14 @@ Commandes :
 ```sh
 python3 tools/extract_dialogues.py
 python3 tools/validate_dialogues.py
+python3 tools/validate_terminology.py
 python3 tools/build_fr.py --rom /chemin/RocketEdition.gba
 python3 tools/generate_patch.py --source-rom /chemin/english.gba --target-rom /chemin/fr.gba --output /hors/depot/rocket-fr.bps
 ```
 
 ## 4. Contrôles présents et prévus
 
-Le validateur actuel détecte : tokens/variables perdus ou modifiés, anglais résiduel probable, caractères hors liste blanche, lignes probablement trop longues, traductions divergentes d'une source dupliquée et texte XSE sans label `#org`. Il conserve un rapport exhaustif des non-traduits. Les contrôles terminologiques contextuels, la compilation XSE réelle et la largeur exacte exigent encore les données ROM/compilateur.
+Le validateur exige désormais l'ensemble **exact** des IDs sources (absents, étrangers et doublons refusés) et protège, dans l'ordre, les contrôles techniques sans absorber le texte adjacent. Les retours `\\n`, `\\l`, `\\p` sont librement réorganisables, mais leur automate impose une structure de boîte valide et la largeur de chaque ligne. La terminologie par ID est stricte ; en prose, les noms anglais non ambigus sont refusés et les homonymes possibles de capacités déclenchent une revue humaine. La compilation XSE réelle et la largeur exacte exigent encore les données ROM/compilateur.
 
 ## 5. Blocages à lever avant toute traduction massive
 

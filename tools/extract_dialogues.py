@@ -18,7 +18,10 @@ def main() -> int:
     previous = {}
     if output.exists():
         with output.open(encoding="utf-8", newline="") as handle:
-            previous = {row["id"]: row for row in csv.DictReader(handle)}
+            old_rows = list(csv.DictReader(handle))
+            if len({row["id"] for row in old_rows}) != len(old_rows):
+                raise SystemExit("catalogue existant invalide: identifiants dupliqués")
+            previous = {row["id"]: row for row in old_rows}
     rows = []
     for item in iter_strings(args.root):
         old = previous.get(item["id"], {})
